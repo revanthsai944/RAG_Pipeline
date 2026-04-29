@@ -183,19 +183,38 @@ That means the first run can take longer than later runs.
 
 ### From the API
 
-Health check:
+The samples below were verified locally against the running backend and Ollama-backed model on April 30, 2026. Exact timestamps, latency, and similarity scores will vary between runs.
+The request examples are written in bash-style `curl`; on Windows PowerShell, prefer `curl.exe` or `Invoke-RestMethod` if quoting gets in the way.
+
+#### 1. Health check
 
 ```bash
 curl http://localhost:3000/health
 ```
 
-Ingest the FAQ dataset:
+```json
+{
+  "status": "ok",
+  "timestamp": "2026-04-29T19:41:58.440Z"
+}
+```
+
+#### 2. Ingest the FAQ dataset
 
 ```bash
 curl -X POST http://localhost:3000/ingest
 ```
 
-Query the RAG pipeline:
+```json
+{
+  "message": "Ingestion complete",
+  "ingested": 10,
+  "skipped": 0,
+  "total_documents": 10
+}
+```
+
+#### 3. Query: account creation
 
 ```bash
 curl -X POST http://localhost:3000/query \
@@ -206,21 +225,101 @@ curl -X POST http://localhost:3000/query \
   }'
 ```
 
-Example response shape:
-
 ```json
 {
-  "answer": "Creating a Beem account is simple...",
+  "answer": "Creating a Beem account is simple. Download the Beem app, provide your phone number, and complete identity verification. You'll be ready to send and receive money in minutes.",
   "sources": [
     {
       "id": "faq_002",
       "question": "How do I create a Beem account?",
-      "answer": "Creating a Beem account is simple...",
+      "answer": "Creating a Beem account is simple. Download the Beem app, provide your phone number, and complete identity verification. You'll be ready to send and receive money in minutes.",
       "category": "account",
-      "score": 0.91
+      "score": 0.8235479679352019
+    },
+    {
+      "id": "faq_001",
+      "question": "What is Beem?",
+      "answer": "Beem is a fintech platform that enables fast, secure, and affordable money transfers. We provide seamless payment solutions for individuals and businesses across Africa.",
+      "category": "general",
+      "score": 0.5883799394763148
+    },
+    {
+      "id": "faq_005",
+      "question": "Is Beem secure?",
+      "answer": "Yes, Beem uses bank-level encryption and multi-factor authentication to protect your account. All transactions are monitored for fraud and your funds are insured up to $100,000.",
+      "category": "security",
+      "score": 0.5709556539363475
     }
   ],
-  "latency_ms": 1247
+  "latency_ms": 10295
+}
+```
+
+#### 4. Query: supported countries
+
+```bash
+curl -X POST http://localhost:3000/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "question": "Which countries does Beem support?",
+    "top_k": 2
+  }'
+```
+
+```json
+{
+  "answer": "Beem currently operates in 15 African countries including Kenya, Uganda, Nigeria, Tanzania, Ghana, and Rwanda.",
+  "sources": [
+    {
+      "id": "faq_007",
+      "question": "Which countries does Beem support?",
+      "answer": "Beem currently operates in 15 African countries including Kenya, Uganda, Nigeria, Tanzania, Ghana, and Rwanda. We are expanding to more countries monthly.",
+      "category": "coverage",
+      "score": 0.8631658117301202
+    },
+    {
+      "id": "faq_001",
+      "question": "What is Beem?",
+      "answer": "Beem is a fintech platform that enables fast, secure, and affordable money transfers. We provide seamless payment solutions for individuals and businesses across Africa.",
+      "category": "general",
+      "score": 0.51753123838955
+    }
+  ],
+  "latency_ms": 7421
+}
+```
+
+#### 5. Query: out-of-scope question
+
+```bash
+curl -X POST http://localhost:3000/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "question": "What is the capital of France?",
+    "top_k": 2
+  }'
+```
+
+```json
+{
+  "answer": "I don't have enough information.",
+  "sources": [
+    {
+      "id": "faq_007",
+      "question": "Which countries does Beem support?",
+      "answer": "Beem currently operates in 15 African countries including Kenya, Uganda, Nigeria, Tanzania, Ghana, and Rwanda. We are expanding to more countries monthly.",
+      "category": "coverage",
+      "score": 0.1154909239050259
+    },
+    {
+      "id": "faq_009",
+      "question": "Can I transfer money to any bank?",
+      "answer": "Yes, Beem supports transfers to all major banks in supported countries. You can also send money directly to mobile wallets and other digital payment platforms.",
+      "category": "transfers",
+      "score": 0.04888406072255601
+    }
+  ],
+  "latency_ms": 13415
 }
 ```
 
@@ -300,4 +399,3 @@ npm run lint
 - Backend service details: [Backend/README.md](Backend/README.md)
 - Backend technical notes: [Backend/TECHNICAL.md](Backend/TECHNICAL.md)
 - Frontend app source: [Frontend/src/App.tsx](Frontend/src/App.tsx)
-
